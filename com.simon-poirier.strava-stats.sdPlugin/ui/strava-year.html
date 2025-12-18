@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<title>Year Tracker Settings</title>
+	<meta charset="utf-8" />
+	<script src="sdpi-components.js"></script>
+</head>
+<body>
+	<sdpi-item label="">
+		<details class="info">
+			<summary>Authentication Required</summary>
+			<p>This action uses the global OAuth settings. Please configure authentication using the <strong>Strava OAuth Setup</strong> action first.</p>
+		</details>
+	</sdpi-item>
+
+	<sdpi-item label="Activity Type">
+		<sdpi-select setting="activityType">
+			<option value="run">Run</option>
+			<option value="ride">Ride</option>
+			<option value="swim">Swim</option>
+		</sdpi-select>
+	</sdpi-item>
+
+	<sdpi-item label="Display Mode">
+		<sdpi-select setting="displayMode">
+			<option value="distance">Distance (km)</option>
+			<option value="time">Time</option>
+			<option value="count">Activity Count</option>
+			<option value="elevation">Elevation Gain (m)</option>
+		</sdpi-select>
+	</sdpi-item>
+
+	<sdpi-item label="Goal (optional)">
+		<sdpi-textfield setting="goal" placeholder="e.g., 1000 for 1000km"></sdpi-textfield>
+	</sdpi-item>
+
+	<sdpi-item label="">
+		<details class="info">
+			<summary>About Year Tracker</summary>
+			<p>This action displays your Strava year-to-date (YTD) statistics. It updates automatically every 5 minutes.</p>
+			<ul>
+				<li><strong>Distance:</strong> Total kilometers this year</li>
+				<li><strong>Time:</strong> Total moving time this year</li>
+				<li><strong>Count:</strong> Number of activities this year</li>
+				<li><strong>Elevation:</strong> Total elevation gain this year</li>
+			</ul>
+		</details>
+	</sdpi-item>
+</body>
+</html>

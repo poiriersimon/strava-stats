@@ -1,0 +1,116 @@
+{
+	"Name": "Strava Stats",
+	"Version": "0.1.0.0",
+	"Author": "Simon Poirier",
+	"Actions": [
+		{
+			"Name": "Strava OAuth Setup",
+			"UUID": "com.simon-poirier.strava-stats.oauth",
+			"Icon": "imgs/actions/runner-auth",
+			"Tooltip": "Configure Strava OAuth authentication for automatic token refresh.",
+			"PropertyInspectorPath": "ui/strava-oauth.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/keys/background",
+					"TitleAlignment": "middle",
+					"TitleColor": "#FFFFFF"
+				}
+			]
+		},
+		{
+			"Name": "Year Tracker",
+			"UUID": "com.simon-poirier.strava-stats.goal",
+			"Icon": "imgs/actions/runner-goal",
+			"Tooltip": "Displays your Strava year-to-date statistics (distance, time, activities).",
+			"PropertyInspectorPath": "ui/strava-year.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/keys/background",
+					"TitleAlignment": "middle",
+					"TitleColor": "#FFFFFF"
+				}
+			]
+		},
+		{
+			"Name": "Month Tracker",
+			"UUID": "com.simon-poirier.strava-stats.month",
+			"Icon": "imgs/actions/runner-goal",
+			"Tooltip": "Displays your Strava current month statistics (distance, time, activities).",
+			"PropertyInspectorPath": "ui/strava-month.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/keys/background",
+					"TitleAlignment": "middle",
+					"TitleColor": "#FFFFFF"
+				}
+			]
+		},
+		{
+			"Name": "Week Tracker",
+			"UUID": "com.simon-poirier.strava-stats.week",
+			"Icon": "imgs/actions/runner-goal",
+			"Tooltip": "Displays your Strava current week statistics (Monday to Sunday).",
+			"PropertyInspectorPath": "ui/strava-week.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/keys/background",
+					"TitleAlignment": "middle",
+					"TitleColor": "#FFFFFF"
+				}
+			]
+		},
+		{
+			"Name": "Last Activity",
+			"UUID": "com.simon-poirier.strava-stats.last-activity",
+			"Icon": "imgs/actions/runner-goal",
+			"Tooltip": "Displays your most recent Strava activity details.",
+			"PropertyInspectorPath": "ui/last-activity.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/keys/background",
+					"TitleAlignment": "middle",
+					"TitleColor": "#FFFFFF"
+				}
+			]
+		}
+	],
+	"Category": "Strava Stats",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "See your Strava Progress on your Stream Deck",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "6.9"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"UUID": "com.simon-poirier.strava-stats"
+}

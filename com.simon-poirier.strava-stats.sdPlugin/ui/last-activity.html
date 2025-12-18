@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<title>Last Activity Settings</title>
+	<meta charset="utf-8" />
+	<script src="sdpi-components.js"></script>
+</head>
+<body>
+	<sdpi-item label="">
+		<details class="info">
+			<summary>Authentication Required</summary>
+			<p>This action uses the global OAuth settings. Please configure authentication using the <strong>Strava OAuth Setup</strong> action first.</p>
+		</details>
+	</sdpi-item>
+
+	<sdpi-item label="Filter by Activity Type">
+		<sdpi-select setting="filterType" default="all">
+			<option value="all">All Activities</option>
+			<option value="run">Run Only</option>
+			<option value="ride">Ride Only</option>
+			<option value="swim">Swim Only</option>
+		</sdpi-select>
+	</sdpi-item>
+
+	<sdpi-item label="Display Mode">
+		<sdpi-select setting="displayMode" default="summary">
+			<option value="summary">Distance + Time</option>
+			<option value="distance">Distance Only</option>
+			<option value="pace">Pace (min/km)</option>
+			<option value="time">Time Only</option>
+			<option value="name">Activity Name</option>
+			<option value="elevation">Elevation Gain</option>
+			<option value="full">Full Details</option>
+		</sdpi-select>
+	</sdpi-item>
+
+	<sdpi-item label="">
+		<details class="info">
+			<summary>About Last Activity</summary>
+			<p>This action displays your most recent Strava activity. It updates automatically every 5 minutes.</p>
+			<ul>
+				<li><strong>Summary:</strong> Shows distance and time</li>
+				<li><strong>Pace:</strong> Average pace in min/km</li>
+				<li><strong>Full Details:</strong> Shows distance, time, and pace</li>
+			</ul>
+		</details>
+	</sdpi-item>
+</body>
+</html>

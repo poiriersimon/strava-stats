@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<title>Strava OAuth Setup</title>
+	<meta charset="utf-8" />
+	<script src="sdpi-components.js"></script>
+</head>
+<body>
+	<sdpi-item label="Client ID">
+		<sdpi-textfield setting="clientId" placeholder="Enter your Strava Client ID"></sdpi-textfield>
+	</sdpi-item>
+
+	<sdpi-item label="Client Secret">
+		<sdpi-textfield setting="clientSecret" type="password" placeholder="Enter your Strava Client Secret"></sdpi-textfield>
+	</sdpi-item>
+
+	<sdpi-item label="Setup Instructions" class="info-item">
+		<details class="message info">
+			<summary>Setup Steps</summary>
+			<p><strong>1.</strong> Go to <a href="https://www.strava.com/settings/api" target="_blank">Strava API Settings</a> and create an app:</p>
+			<ul>
+				<li>Application Name: Stream Deck Integration</li>
+				<li>Category: Any</li>
+				<li>Website: Any URL</li>
+				<li>Authorization Callback Domain: <strong>localhost</strong></li>
+			</ul>
+			<p><strong>2.</strong> Copy your Client ID and Client Secret above</p>
+			<p><strong>3.</strong> Copy the Authorization URL below, replace YOUR_CLIENT_ID, and open in browser</p>
+			<p><strong>4.</strong> Authorize the app, then copy the "code" from the redirect URL and paste below</p>
+		</details>
+	</sdpi-item>
+
+	<sdpi-item label="Authorization URL">
+		<input class="sdpi-item-value" type="text" value="https://www.strava.com/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost&response_type=code&scope=activity:read_all" readonly />
+	</sdpi-item>
+
+	<sdpi-item label="Authorization Code">
+		<sdpi-textfield setting="authCode" placeholder="Paste the code from redirect URL"></sdpi-textfield>
+	</sdpi-item>
+
+</body>
+</html>
