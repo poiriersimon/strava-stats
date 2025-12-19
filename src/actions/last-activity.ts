@@ -6,35 +6,40 @@ import { StravaService } from "../services/strava-service";
  */
 @action({ UUID: "com.simon-poirier.strava-stats.last-activity" })
 export class LastActivity extends SingletonAction<LastActivitySettings> {
-	private refreshInterval?: NodeJS.Timeout;
+	private refreshIntervals: Map<string, NodeJS.Timeout> = new Map();
 
 	/**
 	 * Called when the action appears on Stream Deck
 	 */
 	override async onWillAppear(ev: WillAppearEvent<LastActivitySettings>): Promise<void> {
 		const { settings } = ev.payload;
+		const actionId = ev.action.id;
 
-		// Clear any existing interval
-		if (this.refreshInterval) {
-			clearInterval(this.refreshInterval);
+		// Clear any existing interval for this specific action
+		const existingInterval = this.refreshIntervals.get(actionId);
+		if (existingInterval) {
+			clearInterval(existingInterval);
 		}
 
 		// Update immediately
-		await this.updateLastActivityDisplay(ev.action.id, settings);
+		await this.updateLastActivityDisplay(actionId, settings);
 
 		// Set up periodic refresh (every 30 minutes to respect rate limits)
-		this.refreshInterval = setInterval(async () => {
-			await this.updateLastActivityDisplay(ev.action.id, settings);
+		const interval = setInterval(async () => {
+			await this.updateLastActivityDisplay(actionId, settings);
 		}, 30 * 60 * 1000);
+		this.refreshIntervals.set(actionId, interval);
 	}
 
 	/**
 	 * Called when the action disappears from Stream Deck
 	 */
-	override onWillDisappear(): void {
-		if (this.refreshInterval) {
-			clearInterval(this.refreshInterval);
-			this.refreshInterval = undefined;
+	override onWillDisappear(ev: any): void {
+		const actionId = ev.action.id;
+		const interval = this.refreshIntervals.get(actionId);
+		if (interval) {
+			clearInterval(interval);
+			this.refreshIntervals.delete(actionId);
 		}
 	}
 
@@ -130,7 +135,7 @@ export class LastActivity extends SingletonAction<LastActivitySettings> {
 					const fullDist = StravaService.formatDistance(lastActivity.distance);
 					const fullTime = StravaService.formatTime(lastActivity.moving_time);
 					const fullPace = StravaService.calculatePace(lastActivity.distance, lastActivity.moving_time);
-					displayText = `LAST\n${fullDist}km ${fullTime}\n${fullPace}`;
+					displayText = `LAST\n${fullDist}km\n${fullTime}\n${fullPace}`;
 					break;
 			}
 

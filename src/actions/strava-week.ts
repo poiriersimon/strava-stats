@@ -6,35 +6,40 @@ import { StravaService } from "../services/strava-service";
  */
 @action({ UUID: "com.simon-poirier.strava-stats.week" })
 export class StravaWeek extends SingletonAction<StravaWeekSettings> {
-	private refreshInterval?: NodeJS.Timeout;
+	private refreshIntervals: Map<string, NodeJS.Timeout> = new Map();
 
 	/**
 	 * Called when the action appears on Stream Deck
 	 */
 	override async onWillAppear(ev: WillAppearEvent<StravaWeekSettings>): Promise<void> {
 		const { settings } = ev.payload;
+		const actionId = ev.action.id;
 
-		// Clear any existing interval
-		if (this.refreshInterval) {
-			clearInterval(this.refreshInterval);
+		// Clear any existing interval for this specific action
+		const existingInterval = this.refreshIntervals.get(actionId);
+		if (existingInterval) {
+			clearInterval(existingInterval);
 		}
 
 		// Update immediately
-		await this.updateWeekDisplay(ev.action.id, settings);
+		await this.updateWeekDisplay(actionId, settings);
 
 		// Set up periodic refresh (every 30 minutes to respect rate limits)
-		this.refreshInterval = setInterval(async () => {
-			await this.updateWeekDisplay(ev.action.id, settings);
+		const interval = setInterval(async () => {
+			await this.updateWeekDisplay(actionId, settings);
 		}, 30 * 60 * 1000);
+		this.refreshIntervals.set(actionId, interval);
 	}
 
 	/**
 	 * Called when the action disappears from Stream Deck
 	 */
-	override onWillDisappear(): void {
-		if (this.refreshInterval) {
-			clearInterval(this.refreshInterval);
-			this.refreshInterval = undefined;
+	override onWillDisappear(ev: any): void {
+		const actionId = ev.action.id;
+		const interval = this.refreshIntervals.get(actionId);
+		if (interval) {
+			clearInterval(interval);
+			this.refreshIntervals.delete(actionId);
 		}
 	}
 
