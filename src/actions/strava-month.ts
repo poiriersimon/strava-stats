@@ -26,7 +26,11 @@ export class StravaMonth extends SingletonAction<StravaMonthSettings> {
 
 		// Set up periodic refresh (every 30 minutes to respect rate limits)
 		const interval = setInterval(async () => {
-			await this.updateMonthDisplay(actionId, settings);
+			const action = streamDeck.actions.getActionById(actionId);
+			if (action) {
+				const currentSettings = await action.getSettings();
+				await this.updateMonthDisplay(actionId, currentSettings);
+			}
 		}, 30 * 60 * 1000);
 		this.refreshIntervals.set(actionId, interval);
 	}

@@ -26,7 +26,11 @@ export class StravaYear extends SingletonAction<StravaYearSettings> {
 
 		// Set up periodic refresh (every 30 minutes to respect rate limits)
 		const interval = setInterval(async () => {
-			await this.updateYearDisplay(actionId, settings);
+			const action = streamDeck.actions.getActionById(actionId);
+			if (action) {
+				const currentSettings = await action.getSettings();
+				await this.updateYearDisplay(actionId, currentSettings);
+			}
 		}, 30 * 60 * 1000);
 		this.refreshIntervals.set(actionId, interval);
 	}

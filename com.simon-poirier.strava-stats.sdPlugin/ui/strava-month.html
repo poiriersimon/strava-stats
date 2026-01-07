@@ -1,51 +1,138 @@
 <!DOCTYPE html>
 <html>
-<head lang="en">
+<head>
 	<title>Month Tracker Settings</title>
 	<meta charset="utf-8" />
-	<script src="sdpi-components.js"></script>
+	<style>
+		body { margin: 16px; font-family: Arial, sans-serif; background: #2d2d2d; color: #d8d8d8; }
+		label { display: block; margin: 8px 0 4px 0; font-size: 12px; color: #9a9a9a; }
+		select, input { width: 100%; padding: 8px; box-sizing: border-box; background: #3c3c3c; border: 1px solid #4a4a4a; color: #d8d8d8; border-radius: 4px; }
+	</style>
 </head>
 <body>
-	<sdpi-item label="">
-		<details class="info">
-			<summary>Authentication Required</summary>
-			<p>This action uses the global OAuth settings. Please configure authentication using the <strong>Strava OAuth Setup</strong> action first.</p>
-		</details>
-	</sdpi-item>
+	<h3>Month Tracker Settings</h3>
+	
+	<label for="activityType">Activity Type:</label>
+	<select id="activityType">
+		<option value="all">All Activities</option>
+		<option value="run">Run</option>
+		<option value="ride">Ride</option>
+		<option value="swim">Swim</option>
+	</select>
 
-	<sdpi-item label="Activity Type">
-		<sdpi-select setting="activityType" default="all">
-			<option value="all">All Activities</option>
-			<option value="run">Run</option>
-			<option value="ride">Ride</option>
-			<option value="swim">Swim</option>
-		</sdpi-select>
-	</sdpi-item>
+	<label for="displayMode">Display Mode:</label>
+	<select id="displayMode">
+		<option value="distance">Distance (km)</option>
+		<option value="time">Time</option>
+		<option value="count">Activity Count</option>
+		<option value="elevation">Elevation Gain (m)</option>
+	</select>
 
-	<sdpi-item label="Display Mode">
-		<sdpi-select setting="displayMode" default="distance">
-			<option value="distance">Distance (km)</option>
-			<option value="time">Time</option>
-			<option value="count">Activity Count</option>
-			<option value="elevation">Elevation Gain (m)</option>
-		</sdpi-select>
-	</sdpi-item>
+	<label for="goal">Goal (optional):</label>
+	<input type="number" id="goal" placeholder="e.g., 100 for 100km" />
 
-	<sdpi-item label="Goal (optional)">
-		<sdpi-textfield setting="goal" placeholder="e.g., 100 for 100km"></sdpi-textfield>
-	</sdpi-item>
+	<details style="margin-top: 16px; padding: 12px; background: #1e1e1e; border-radius: 4px; border-left: 3px solid #007acc;">
+		<summary style="cursor: pointer; font-weight: bold; color: #d8d8d8;">Authentication Required</summary>
+		<p style="margin: 8px 0 0 0; font-size: 12px; color: #9a9a9a;">This action uses the global OAuth settings. Please configure authentication using the <strong style="color: #d8d8d8;">Strava OAuth Setup</strong> action first.</p>
+	</details>
 
-	<sdpi-item label="">
-		<details class="info">
-			<summary>About Month Tracker</summary>
-			<p>This action displays your Strava statistics for the current month. It updates automatically every 5 minutes.</p>
-			<ul>
-				<li><strong>Distance:</strong> Total kilometers this month</li>
-				<li><strong>Time:</strong> Total moving time this month</li>
-				<li><strong>Count:</strong> Number of activities this month</li>
-				<li><strong>Elevation:</strong> Total elevation gain this month</li>
-			</ul>
-		</details>
-	</sdpi-item>
+	<script>
+		let websocket = null;
+		let uuid = null;
+		let actionInfo = null;
+		let registerParams = null;
+
+		// Stream Deck calls this
+		function connectElgatoStreamDeckSocket(inPort, inPropertyInspectorUUID, inRegisterEvent, inInfo, inActionInfo) {
+			console.log('connectElgatoStreamDeckSocket called with port:', inPort);
+			
+			uuid = inPropertyInspectorUUID;
+			actionInfo = JSON.parse(inActionInfo);
+			registerParams = { inPort, inPropertyInspectorUUID, inRegisterEvent };
+			
+			// Set initial values from settings
+			const settings = actionInfo.payload.settings || {};
+			document.getElementById('activityType').value = settings.activityType || 'all';
+			document.getElementById('displayMode').value = settings.displayMode || 'distance';
+			document.getElementById('goal').value = settings.goal || '';
+			
+			// Delay WebSocket connection to avoid timing issues
+			setTimeout(() => connectWebSocket(0), 100);
+		}
+		
+		function connectWebSocket(attemptCount) {
+			if (attemptCount >= 5) {
+				console.error('Failed to connect after 5 attempts');
+				return;
+			}
+			
+			console.log(`Attempt ${attemptCount + 1} to connect WebSocket`);
+			const { inPort, inPropertyInspectorUUID, inRegisterEvent } = registerParams;
+			
+			websocket = new WebSocket('ws://127.0.0.1:' + inPort);
+			
+			websocket.onopen = function() {
+				console.log('WebSocket connected!');
+				const json = { event: inRegisterEvent, uuid: inPropertyInspectorUUID };
+				websocket.send(JSON.stringify(json));
+			};
+			
+			websocket.onerror = function(error) {
+				console.error('WebSocket error on attempt', attemptCount + 1, ':', error);
+			};
+			
+			websocket.onclose = function(event) {
+				console.log('WebSocket closed:', event.code, event.reason);
+				
+				// Retry if it closed immediately (before successfully opening)
+				if (event.code === 1006 && attemptCount < 5) {
+					console.log('Retrying in 200ms...');
+					setTimeout(() => connectWebSocket(attemptCount + 1), 200);
+				}
+			};
+			
+			websocket.onmessage = function(evt) {
+				const jsonObj = JSON.parse(evt.data);
+				console.log('Received:', jsonObj);
+				
+				if (jsonObj.event === 'didReceiveSettings') {
+					const settings = jsonObj.payload.settings;
+					document.getElementById('activityType').value = settings.activityType || 'all';
+					document.getElementById('displayMode').value = settings.displayMode || 'distance';
+					document.getElementById('goal').value = settings.goal || '';
+				}
+			};
+		}
+		
+		// Save settings when changed
+		function sendSettings() {
+			if (websocket && websocket.readyState === 1) {
+				const settings = {
+					activityType: document.getElementById('activityType').value,
+					displayMode: document.getElementById('displayMode').value,
+					goal: document.getElementById('goal').value
+				};
+				
+				const json = {
+					action: actionInfo.action,
+					event: 'setSettings',
+					context: uuid,
+					payload: settings
+				};
+				
+				console.log('Sending settings:', settings);
+				websocket.send(JSON.stringify(json));
+			} else {
+				console.log('WebSocket not ready, state:', websocket ? websocket.readyState : 'null');
+			}
+		}
+		
+		// Add change listeners
+		window.addEventListener('DOMContentLoaded', function() {
+			document.getElementById('activityType').addEventListener('change', sendSettings);
+			document.getElementById('displayMode').addEventListener('change', sendSettings);
+			document.getElementById('goal').addEventListener('input', sendSettings);
+		});
+	</script>
 </body>
 </html>
