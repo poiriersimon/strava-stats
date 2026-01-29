@@ -15,6 +15,7 @@ Display your year-to-date (YTD) Strava statistics:
 - **Time**: Total moving time this year
 - **Activity Count**: Number of activities completed
 - **Elevation Gain**: Total elevation climbed
+- **Goal Setting**: Set a yearly goal and track progress
 
 Supports runs, rides, and swims!
 
@@ -22,7 +23,29 @@ Supports runs, rides, and swims!
 Display current month statistics:
 - Same metrics as Year Tracker
 - Filters activities from current month only
-- Supports all activity types
+- Supports all activity types including "All"
+- **Goal Setting**: Set a monthly goal and track progress
+
+### 📆 Week Tracker
+Display current week statistics (Monday to Sunday):
+- Same metrics as Year/Month Tracker
+- Filters activities from current week only
+- Supports all activity types including "All"
+- **Goal Setting**: Set a weekly goal and track progress
+
+### 🎯 Goal Progress View
+For Year, Month, and Week trackers, **press the button** to toggle the goal progress view:
+- **Line 1**: Status - "ON TARGET", "AHEAD", or "BEHIND"
+- **Line 2**: Your current value (e.g., "150.5km")
+- **Line 3**: Your goal (e.g., "/1000km")
+- **Line 4**: How much ahead or behind (e.g., "+12.3km" or "-5.2km")
+
+The calculation is based on proportional progress:
+- **Year**: Current day of year / 365 (or 366 for leap years)
+- **Month**: Current day of month / days in month
+- **Week**: Current day of week / 7 (Monday = day 1)
+
+Press the button again to return to the normal display.
 
 ### 🏃 Last Activity
 Show your most recent Strava activity:
@@ -76,10 +99,17 @@ Once authenticated, you can add:
 - **Year Tracker**: Shows YTD statistics
   - Activity Type: Run, Ride, or Swim
   - Display Mode: Distance, Time, Count, or Elevation
+  - Goal: Optional yearly target (press button to see progress)
+
+- **Week Tracker**: Shows current week statistics
+  - Activity Type: All, Run, Ride, or Swim
+  - Display Mode: Distance, Time, Count, or Elevation
+  - Goal: Optional weekly target (press button to see progress)
   
 - **Month Tracker**: Shows current month statistics
   - Activity Type: All, Run, Ride, or Swim
   - Display Mode: Distance, Time, Count, or Elevation
+  - Goal: Optional monthly target (press button to see progress)
   
 - **Last Activity**: Shows most recent activity
   - Filter: All, Run, Ride, or Swim
@@ -89,7 +119,8 @@ Once authenticated, you can add:
 
 - **Automatic Token Refresh**: Access tokens expire after 6 hours. The plugin automatically refreshes them using your refresh token.
 - **Global Authentication**: You only need to authenticate once. All actions use the same credentials.
-- **Updates**: Stats update every 30 minutes automatically or press the button to get a instant update.
+- **Updates**: Stats update every 30 minutes automatically or press the button to get an instant update.
+- **Goal Progress Toggle**: Press any tracker button (Year/Month/Week) with a goal set to see your progress status.
 - **Sleep Awareness**: The plugin can detect when your device wakes from sleep and refresh all stats automatically (future feature).
 
 ## Rate Limits

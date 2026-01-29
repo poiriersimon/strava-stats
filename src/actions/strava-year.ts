@@ -7,6 +7,7 @@ import { StravaService } from "../services/strava-service";
 @action({ UUID: "com.simon-poirier.strava-stats.goal" })
 export class StravaYear extends SingletonAction<StravaYearSettings> {
 	private refreshIntervals: Map<string, NodeJS.Timeout> = new Map();
+	private showGoalProgress: Map<string, boolean> = new Map();
 
 	/**
 	 * Called when the action appears on Stream Deck
@@ -56,10 +57,149 @@ export class StravaYear extends SingletonAction<StravaYearSettings> {
 	}
 
 	/**
-	 * Called when button is pressed - refresh the data
+	 * Called when button is pressed - toggle goal progress display
 	 */
 	override async onKeyDown(ev: any): Promise<void> {
-		await this.updateYearDisplay(ev.action.id, ev.payload.settings);
+		const actionId = ev.action.id;
+		const settings = ev.payload.settings;
+		
+		// Toggle the goal progress view
+		const currentState = this.showGoalProgress.get(actionId) || false;
+		this.showGoalProgress.set(actionId, !currentState);
+		
+		if (!currentState && settings.goal) {
+			// Show goal progress view
+			await this.updateGoalProgressDisplay(actionId, settings);
+		} else {
+			// Show normal view
+			this.showGoalProgress.set(actionId, false);
+			await this.updateYearDisplay(actionId, settings);
+		}
+	}
+
+	/**
+	 * Calculates and displays goal progress (ahead/behind/on target)
+	 */
+	private async updateGoalProgressDisplay(actionId: string, settings: StravaYearSettings): Promise<void> {
+		try {
+			const accessToken = await StravaService.getValidAccessToken();
+			
+			if (!accessToken) {
+				const action = streamDeck.actions.getActionById(actionId);
+				if (action) await action.setTitle("Setup\nOAuth\nFirst");
+				return;
+			}
+
+			const stravaService = new StravaService(accessToken);
+			const athlete = await stravaService.getAuthenticatedAthlete();
+			const stats = await stravaService.getAthleteStats(athlete.id);
+
+			const activityType = settings.activityType || "run";
+			let ytdData;
+
+			switch (activityType) {
+				case "ride":
+					ytdData = stats.ytd_ride_totals;
+					break;
+				case "swim":
+					ytdData = stats.ytd_swim_totals;
+					break;
+				case "run":
+				default:
+					ytdData = stats.ytd_run_totals;
+					break;
+			}
+
+			const goal = settings.goal ? parseFloat(settings.goal.toString()) : 0;
+			if (!goal) {
+				const action = streamDeck.actions.getActionById(actionId);
+				if (action) await action.setTitle("No Goal\nSet");
+				return;
+			}
+
+			// Calculate day of year and total days in year
+			const now = new Date();
+			const startOfYear = new Date(now.getFullYear(), 0, 0);
+			const diff = now.getTime() - startOfYear.getTime();
+			const oneDay = 1000 * 60 * 60 * 24;
+			const dayOfYear = Math.floor(diff / oneDay);
+			
+			const isLeapYear = (year: number) => (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+			const daysInYear = isLeapYear(now.getFullYear()) ? 366 : 365;
+
+			// Get current value based on display mode
+			const displayMode = settings.displayMode || "distance";
+			let currentValue = 0;
+			let unit = "";
+
+			switch (displayMode) {
+				case "distance":
+					currentValue = ytdData.distance / 1000; // Convert to km
+					unit = "km";
+					break;
+				case "time":
+					currentValue = ytdData.moving_time / 3600; // Convert to hours for easier comparison
+					unit = "h";
+					break;
+				case "count":
+					currentValue = ytdData.count;
+					unit = "";
+					break;
+				case "elevation":
+					currentValue = ytdData.elevation_gain;
+					unit = "m";
+					break;
+			}
+
+			// Calculate expected progress based on day of year
+			const expectedValue = (goal / daysInYear) * dayOfYear;
+			const difference = currentValue - expectedValue;
+			const percentProgress = (currentValue / goal) * 100;
+
+			// Determine status
+			let statusLine = "";
+			let diffLine = "";
+			const absDiff = Math.abs(difference);
+
+			if (Math.abs(difference) < (goal * 0.01)) {
+				// Within 1% is "on target"
+				statusLine = "ON TARGET";
+				diffLine = `~${absDiff.toFixed(1)}${unit}`;
+			} else if (difference > 0) {
+				statusLine = "AHEAD";
+				diffLine = `+${absDiff.toFixed(1)}${unit}`;
+			} else {
+				statusLine = "BEHIND";
+				diffLine = `-${absDiff.toFixed(1)}${unit}`;
+			}
+
+			// Format current and target lines separately
+			const currentFormatted = currentValue.toFixed(1);
+			const currentLine = `${currentFormatted}${unit}`;
+			const targetLine = `/${goal}${unit}`;
+
+			const displayText = `${statusLine}\n${currentLine}\n${targetLine}\n${diffLine}`;
+
+			const action = streamDeck.actions.getActionById(actionId);
+			if (action) {
+				await action.setTitle(displayText);
+				
+				// Set background based on status
+				if (difference >= 0) {
+					await action.setImage("imgs/keys/background-goalreach");
+				} else {
+					await action.setImage("imgs/keys/background");
+				}
+			}
+
+		} catch (error: any) {
+			const action = streamDeck.actions.getActionById(actionId);
+			if (action) {
+				await action.setTitle("Error");
+				await action.setImage("imgs/keys/background");
+			}
+			streamDeck.logger.error(`Failed to update goal progress: ${error?.message}`);
+		}
 	}
 
 	/**

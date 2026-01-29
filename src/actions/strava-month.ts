@@ -7,6 +7,7 @@ import { StravaService } from "../services/strava-service";
 @action({ UUID: "com.simon-poirier.strava-stats.month" })
 export class StravaMonth extends SingletonAction<StravaMonthSettings> {
 	private refreshIntervals: Map<string, NodeJS.Timeout> = new Map();
+	private showGoalProgress: Map<string, boolean> = new Map();
 
 	/**
 	 * Called when the action appears on Stream Deck
@@ -56,10 +57,146 @@ export class StravaMonth extends SingletonAction<StravaMonthSettings> {
 	}
 
 	/**
-	 * Called when button is pressed - refresh the data
+	 * Called when button is pressed - toggle goal progress display
 	 */
 	override async onKeyDown(ev: any): Promise<void> {
-		await this.updateMonthDisplay(ev.action.id, ev.payload.settings);
+		const actionId = ev.action.id;
+		const settings = ev.payload.settings;
+		
+		// Toggle the goal progress view
+		const currentState = this.showGoalProgress.get(actionId) || false;
+		this.showGoalProgress.set(actionId, !currentState);
+		
+		if (!currentState && settings.goal) {
+			// Show goal progress view
+			await this.updateGoalProgressDisplay(actionId, settings);
+		} else {
+			// Show normal view
+			this.showGoalProgress.set(actionId, false);
+			await this.updateMonthDisplay(actionId, settings);
+		}
+	}
+
+	/**
+	 * Calculates and displays goal progress (ahead/behind/on target) for the month
+	 */
+	private async updateGoalProgressDisplay(actionId: string, settings: StravaMonthSettings): Promise<void> {
+		try {
+			const accessToken = await StravaService.getValidAccessToken();
+			
+			if (!accessToken) {
+				const action = streamDeck.actions.getActionById(actionId);
+				if (action) await action.setTitle("Setup\nOAuth\nFirst");
+				return;
+			}
+
+			const stravaService = new StravaService(accessToken);
+			
+			// Get activities for current month
+			const now = new Date();
+			const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+			const afterTimestamp = Math.floor(firstDayOfMonth.getTime() / 1000);
+			
+			const activities = await stravaService.getActivities(1, 200, afterTimestamp);
+
+			const activityType = settings.activityType || "run";
+			let filteredActivities = activities;
+			
+			if (activityType !== "all") {
+				filteredActivities = activities.filter(a => 
+					a.sport_type.toLowerCase().includes(activityType.toLowerCase()) ||
+					a.type.toLowerCase().includes(activityType.toLowerCase())
+				);
+			}
+
+			const monthData = {
+				count: filteredActivities.length,
+				distance: filteredActivities.reduce((sum, a) => sum + a.distance, 0),
+				moving_time: filteredActivities.reduce((sum, a) => sum + a.moving_time, 0),
+				elevation_gain: filteredActivities.reduce((sum, a) => sum + a.total_elevation_gain, 0)
+			};
+
+			const goal = settings.goal ? parseFloat(settings.goal.toString()) : 0;
+			if (!goal) {
+				const action = streamDeck.actions.getActionById(actionId);
+				if (action) await action.setTitle("No Goal\nSet");
+				return;
+			}
+
+			// Calculate day of month and total days in month
+			const currentDayOfMonth = now.getDate();
+			const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+			// Get current value based on display mode
+			const displayMode = settings.displayMode || "distance";
+			let currentValue = 0;
+			let unit = "";
+
+			switch (displayMode) {
+				case "distance":
+					currentValue = monthData.distance / 1000;
+					unit = "km";
+					break;
+				case "time":
+					currentValue = monthData.moving_time / 3600;
+					unit = "h";
+					break;
+				case "count":
+					currentValue = monthData.count;
+					unit = "";
+					break;
+				case "elevation":
+					currentValue = monthData.elevation_gain;
+					unit = "m";
+					break;
+			}
+
+			// Calculate expected progress based on day of month
+			const expectedValue = (goal / daysInMonth) * currentDayOfMonth;
+			const difference = currentValue - expectedValue;
+
+			// Determine status
+			let statusLine = "";
+			let diffLine = "";
+			const absDiff = Math.abs(difference);
+
+			if (Math.abs(difference) < (goal * 0.01)) {
+				statusLine = "ON TARGET";
+				diffLine = `~${absDiff.toFixed(1)}${unit}`;
+			} else if (difference > 0) {
+				statusLine = "AHEAD";
+				diffLine = `+${absDiff.toFixed(1)}${unit}`;
+			} else {
+				statusLine = "BEHIND";
+				diffLine = `-${absDiff.toFixed(1)}${unit}`;
+			}
+
+			// Format current and target lines separately
+			const currentFormatted = currentValue.toFixed(1);
+			const currentLine = `${currentFormatted}${unit}`;
+			const targetLine = `/${goal}${unit}`;
+
+			const displayText = `${statusLine}\n${currentLine}\n${targetLine}\n${diffLine}`;
+
+			const action = streamDeck.actions.getActionById(actionId);
+			if (action) {
+				await action.setTitle(displayText);
+				
+				if (difference >= 0) {
+					await action.setImage("imgs/keys/background-goalreach");
+				} else {
+					await action.setImage("imgs/keys/background");
+				}
+			}
+
+		} catch (error: any) {
+			const action = streamDeck.actions.getActionById(actionId);
+			if (action) {
+				await action.setTitle("Error");
+				await action.setImage("imgs/keys/background");
+			}
+			streamDeck.logger.error(`Failed to update month goal progress: ${error?.message}`);
+		}
 	}
 
 	/**
