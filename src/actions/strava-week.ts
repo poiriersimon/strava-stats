@@ -22,8 +22,17 @@ export class StravaWeek extends SingletonAction<StravaWeekSettings> {
 			clearInterval(existingInterval);
 		}
 
-		// Update immediately
-		await this.updateWeekDisplay(actionId, settings);
+		// Initialize default view based on settings
+		if (settings.defaultView === "goal" && settings.goal) {
+			this.showGoalProgress.set(actionId, true);
+		}
+
+		// Update immediately based on the default view
+		if (this.showGoalProgress.get(actionId) && settings.goal) {
+			await this.updateGoalProgressDisplay(actionId, settings);
+		} else {
+			await this.updateWeekDisplay(actionId, settings);
+		}
 
 		// Set up periodic refresh (every 30 minutes to respect rate limits)
 		const interval = setInterval(async () => {
@@ -344,4 +353,5 @@ type StravaWeekSettings = {
 	activityType?: "all" | "run" | "ride" | "swim";
 	displayMode?: "distance" | "time" | "count" | "elevation";
 	goal?: number | string;
+	defaultView?: "current" | "goal";
 };
