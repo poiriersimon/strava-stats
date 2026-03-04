@@ -30,7 +30,6 @@ export class StravaYear extends SingletonAction<StravaYearSettings> {
 	 * Called when the action appears on Stream Deck
 	 */
 	override async onWillAppear(ev: WillAppearEvent<StravaYearSettings>): Promise<void> {
-		const { settings } = ev.payload;
 		const actionId = ev.action.id;
 
 		// Clear any existing interval for this specific action
@@ -38,6 +37,10 @@ export class StravaYear extends SingletonAction<StravaYearSettings> {
 		if (existingInterval) {
 			clearInterval(existingInterval);
 		}
+
+		// Fetch the latest persisted settings directly (ev.payload.settings can be stale after sleep/wake)
+		const settings = await ev.action.getSettings();
+		streamDeck.logger.info(`Year onWillAppear - settings: ${JSON.stringify(settings)}`);
 
 		// Update immediately based on persisted defaultView setting
 		await this.refreshDisplay(actionId, settings);
