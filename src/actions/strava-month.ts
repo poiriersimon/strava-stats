@@ -7,7 +7,24 @@ import { StravaService } from "../services/strava-service";
 @action({ UUID: "com.simon-poirier.strava-stats.month" })
 export class StravaMonth extends SingletonAction<StravaMonthSettings> {
 	private refreshIntervals: Map<string, NodeJS.Timeout> = new Map();
-	private showGoalProgress: Map<string, boolean> = new Map();
+
+	/**
+	 * Determines which view to show based on persisted settings
+	 */
+	private shouldShowGoalProgress(settings: StravaMonthSettings): boolean {
+		return settings.defaultView === "goal" && !!settings.goal;
+	}
+
+	/**
+	 * Refreshes the display based on the current persisted settings
+	 */
+	private async refreshDisplay(actionId: string, settings: StravaMonthSettings): Promise<void> {
+		if (this.shouldShowGoalProgress(settings)) {
+			await this.updateGoalProgressDisplay(actionId, settings);
+		} else {
+			await this.updateMonthDisplay(actionId, settings);
+		}
+	}
 
 	/**
 	 * Called when the action appears on Stream Deck
@@ -22,28 +39,15 @@ export class StravaMonth extends SingletonAction<StravaMonthSettings> {
 			clearInterval(existingInterval);
 		}
 
-		// Initialize default view based on settings
-		if (settings.defaultView === "goal" && settings.goal) {
-			this.showGoalProgress.set(actionId, true);
-		}
-
-		// Update immediately based on the default view
-		if (this.showGoalProgress.get(actionId) && settings.goal) {
-			await this.updateGoalProgressDisplay(actionId, settings);
-		} else {
-			await this.updateMonthDisplay(actionId, settings);
-		}
+		// Update immediately based on persisted defaultView setting
+		await this.refreshDisplay(actionId, settings);
 
 		// Set up periodic refresh (every 30 minutes to respect rate limits)
 		const interval = setInterval(async () => {
 			const action = streamDeck.actions.getActionById(actionId);
 			if (action) {
 				const currentSettings = await action.getSettings();
-				if (this.showGoalProgress.get(actionId) && currentSettings.goal) {
-					await this.updateGoalProgressDisplay(actionId, currentSettings);
-				} else {
-					await this.updateMonthDisplay(actionId, currentSettings);
-				}
+				await this.refreshDisplay(actionId, currentSettings);
 			}
 		}, 30 * 60 * 1000);
 		this.refreshIntervals.set(actionId, interval);
@@ -68,40 +72,27 @@ export class StravaMonth extends SingletonAction<StravaMonthSettings> {
 		const actionId = ev.action.id;
 		const settings = ev.payload.settings;
 		streamDeck.logger.info(`Month settings received: ${JSON.stringify(settings)}`);
-
-		// Re-initialize default view when settings change
-		if (settings.defaultView === "goal" && settings.goal) {
-			this.showGoalProgress.set(actionId, true);
-		} else if (settings.defaultView === "current") {
-			this.showGoalProgress.set(actionId, false);
-		}
-
-		if (this.showGoalProgress.get(actionId) && settings.goal) {
-			await this.updateGoalProgressDisplay(actionId, settings);
-		} else {
-			await this.updateMonthDisplay(actionId, settings);
-		}
+		await this.refreshDisplay(actionId, settings);
 	}
 
 	/**
-	 * Called when button is pressed - toggle goal progress display
+	 * Called when button is pressed - toggle between current/goal view and persist the choice
 	 */
 	override async onKeyDown(ev: any): Promise<void> {
 		const actionId = ev.action.id;
 		const settings = ev.payload.settings;
-		
-		// Toggle the goal progress view
-		const currentState = this.showGoalProgress.get(actionId) || false;
-		this.showGoalProgress.set(actionId, !currentState);
-		
-		if (!currentState && settings.goal) {
-			// Show goal progress view
-			await this.updateGoalProgressDisplay(actionId, settings);
-		} else {
-			// Show normal view
-			this.showGoalProgress.set(actionId, false);
-			await this.updateMonthDisplay(actionId, settings);
-		}
+		const action = ev.action;
+
+		// Toggle the view: if currently showing goal, switch to current; otherwise switch to goal
+		const isCurrentlyGoal = this.shouldShowGoalProgress(settings);
+		const newView = isCurrentlyGoal ? "current" : "goal";
+
+		// Persist the toggled view to settings so it survives refreshes/restarts
+		const newSettings = { ...settings, defaultView: newView };
+		await action.setSettings(newSettings);
+
+		// Update display with the new settings
+		await this.refreshDisplay(actionId, newSettings);
 	}
 
 	/**

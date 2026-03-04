@@ -47,6 +47,8 @@ The calculation is based on proportional progress:
 
 Press the button again to return to the normal display.
 
+**Persistent View Choice**: When you toggle between the current tracking view and the goal progress view (either via button press or the Default View setting), your choice is **saved to settings** and persists across refreshes, plugin restarts, sleep/wake cycles, and Stream Deck reconnections. You can also set your preferred default view in the property inspector for each action.
+
 ### 🏃 Last Activity
 Show your most recent Strava activity:
 - **Summary Mode**: Distance + Time
@@ -100,16 +102,19 @@ Once authenticated, you can add:
   - Activity Type: Run, Ride, or Swim
   - Display Mode: Distance, Time, Count, or Elevation
   - Goal: Optional yearly target (press button to see progress)
+  - Default View: Choose "Current" or "Goal" as the startup view
 
 - **Week Tracker**: Shows current week statistics
   - Activity Type: All, Run, Ride, or Swim
   - Display Mode: Distance, Time, Count, or Elevation
   - Goal: Optional weekly target (press button to see progress)
+  - Default View: Choose "Current" or "Goal" as the startup view
   
 - **Month Tracker**: Shows current month statistics
   - Activity Type: All, Run, Ride, or Swim
   - Display Mode: Distance, Time, Count, or Elevation
   - Goal: Optional monthly target (press button to see progress)
+  - Default View: Choose "Current" or "Goal" as the startup view
   
 - **Last Activity**: Shows most recent activity
   - Filter: All, Run, Ride, or Swim
@@ -120,8 +125,8 @@ Once authenticated, you can add:
 - **Automatic Token Refresh**: Access tokens expire after 6 hours. The plugin automatically refreshes them using your refresh token.
 - **Global Authentication**: You only need to authenticate once. All actions use the same credentials.
 - **Updates**: Stats update every 30 minutes automatically or press the button to get an instant update.
-- **Goal Progress Toggle**: Press any tracker button (Year/Month/Week) with a goal set to see your progress status.
-- **Sleep Awareness**: The plugin can detect when your device wakes from sleep and refresh all stats automatically (future feature).
+- **Goal Progress Toggle**: Press any tracker button (Year/Month/Week) with a goal set to toggle between current stats and goal progress. The toggled view is **persisted to settings**, so it survives refreshes, restarts, and sleep/wake cycles.
+- **Default View Setting**: Each tracker has a "Default View" option in its property inspector. This setting is also updated when you toggle via button press, keeping both in sync.
 
 ## Rate Limits
 
