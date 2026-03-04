@@ -39,7 +39,11 @@ export class StravaMonth extends SingletonAction<StravaMonthSettings> {
 			const action = streamDeck.actions.getActionById(actionId);
 			if (action) {
 				const currentSettings = await action.getSettings();
-				await this.updateMonthDisplay(actionId, currentSettings);
+				if (this.showGoalProgress.get(actionId) && currentSettings.goal) {
+					await this.updateGoalProgressDisplay(actionId, currentSettings);
+				} else {
+					await this.updateMonthDisplay(actionId, currentSettings);
+				}
 			}
 		}, 30 * 60 * 1000);
 		this.refreshIntervals.set(actionId, interval);
@@ -61,8 +65,22 @@ export class StravaMonth extends SingletonAction<StravaMonthSettings> {
 	 * Called when settings change in the property inspector
 	 */
 	override async onDidReceiveSettings(ev: any): Promise<void> {
-		streamDeck.logger.info(`Month settings received: ${JSON.stringify(ev.payload.settings)}`);
-		await this.updateMonthDisplay(ev.action.id, ev.payload.settings);
+		const actionId = ev.action.id;
+		const settings = ev.payload.settings;
+		streamDeck.logger.info(`Month settings received: ${JSON.stringify(settings)}`);
+
+		// Re-initialize default view when settings change
+		if (settings.defaultView === "goal" && settings.goal) {
+			this.showGoalProgress.set(actionId, true);
+		} else if (settings.defaultView === "current") {
+			this.showGoalProgress.set(actionId, false);
+		}
+
+		if (this.showGoalProgress.get(actionId) && settings.goal) {
+			await this.updateGoalProgressDisplay(actionId, settings);
+		} else {
+			await this.updateMonthDisplay(actionId, settings);
+		}
 	}
 
 	/**
